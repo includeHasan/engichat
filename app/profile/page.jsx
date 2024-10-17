@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/NavBar';
@@ -7,8 +7,10 @@ const Profile = () => {
   const [profile, setProfile] = useState({
     name: '',
     course: '',
-    university: ''
+    university: '',
+    responseFormat:''
   });
+  const [originalProfile, setOriginalProfile] = useState(null); // For comparison
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -27,7 +29,14 @@ const Profile = () => {
       setProfile({
         name: data.name,
         course: data.collegeCourseName,
-        university: data.university || '' // Fallback in case university is not in the API response
+        university: data.university || '', // Fallback in case university is not in the API response
+        responseFormat:data.responseFormat||'not described'
+      });
+      setOriginalProfile({
+        name: data.name,
+        course: data.collegeCourseName,
+        university: data.university || '',
+        responseFormat:data.responseFormat||''
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -37,10 +46,21 @@ const Profile = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    // Prevent save if no changes were made
+    if (
+      profile.name === originalProfile.name &&
+      profile.course === originalProfile.course &&
+      profile.university === originalProfile.university &&
+      profile.responseFormat===originalProfile.responseFormat
+    ) {
+      setMessage('No changes made to update.');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('/api/profile', {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -48,7 +68,8 @@ const Profile = () => {
         body: JSON.stringify({
           name: profile.name,
           collegeCourseName: profile.course,
-          university: profile.university
+          university: profile.university,
+          responseFormat:profile.responseFormat
         }),
       });
 
@@ -56,6 +77,7 @@ const Profile = () => {
 
       setMessage('Profile updated successfully!');
       setIsEditing(false);
+      setOriginalProfile(profile); // Update the original state after saving
     } catch (error) {
       console.error('Error:', error);
       setMessage('Error updating profile. Please try again.');
@@ -64,7 +86,7 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setProfile(prev => ({ ...prev, [name]: value }));
+    setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -75,13 +97,22 @@ const Profile = () => {
           <div className="px-6 py-4">
             <h2 className="text-2xl font-bold text-center mb-4">Your Profile</h2>
             {message && (
-              <div className={`mb-4 p-2 rounded ${message.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <div
+                className={`mb-4 p-2 rounded ${
+                  message.includes('successfully')
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-700'
+                }`}
+              >
                 {message}
               </div>
             )}
             <form onSubmit={handleUpdate}>
               <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="name"
+                >
                   Name
                 </label>
                 <input
@@ -91,11 +122,16 @@ const Profile = () => {
                   value={profile.name}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${!isEditing && 'bg-gray-100'}`}
+                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
+                    !isEditing && 'bg-gray-100'
+                  }`}
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="course">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="course"
+                >
                   Course
                 </label>
                 <input
@@ -105,11 +141,16 @@ const Profile = () => {
                   value={profile.course}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${!isEditing && 'bg-gray-100'}`}
+                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
+                    !isEditing && 'bg-gray-100'
+                  }`}
                 />
               </div>
-              <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="university">
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="university"
+                >
                   University
                 </label>
                 <input
@@ -119,7 +160,28 @@ const Profile = () => {
                   value={profile.university}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${!isEditing && 'bg-gray-100'}`}
+                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
+                    !isEditing && 'bg-gray-100'
+                  }`}
+                />
+              </div>
+              <div className="mb-6">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="responseFormat"
+                >
+                  Response Format
+                </label>
+                <input
+                  type="text"
+                  id="responseFormat"
+                  name="responseFormat"
+                  value={profile.responseFormat}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
+                    !isEditing && 'bg-gray-100'
+                  }`}
                 />
               </div>
               <div className="flex items-center justify-between">

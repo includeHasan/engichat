@@ -11,10 +11,12 @@ export async function POST(req) {
 
   if (user && (await bcrypt.compare(password, user.password))) {
     const token = createToken(user); // Generate JWT
-    return new Response(
+    const response = new Response(
       JSON.stringify({ token }),
       { status: 200 }
     );
+    response.headers.append('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=86400`); // Set cookie
+    return response;
   } else {
     return new Response(
       JSON.stringify({ message: 'Invalid credentials' }),

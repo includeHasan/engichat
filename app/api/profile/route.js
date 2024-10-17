@@ -37,7 +37,8 @@ export async function GET(req) {
       JSON.stringify({ 
         name: user.name, 
         collegeCourseName: user.collegeCourseName,
-        university: user.university 
+        university: user.university ,
+        responseFormat:user.responseFormat
       }),
       { status: 200 }
     );
@@ -49,9 +50,8 @@ export async function GET(req) {
     );
   }
 }
-
 // Handle PUT requests for user profile
-export async function PUT(req) {
+export async function POST(req) {
   await dbConnect();
   
   const token = getTokenFromHeaders(req.headers);
@@ -64,19 +64,37 @@ export async function PUT(req) {
 
   try {
     const decoded = verifyToken(token);
-    const { name, collegeCourseName, university } = await req.json();
-    const updatedUser = await User.findByIdAndUpdate(
-      decoded.userId,
-      { name, collegeCourseName, university },
-      { new: true }
-    );
-
-    if (!updatedUser) {
+    const { name, collegeCourseName, university,responseFormat } = await req.json();
+    
+    // Fetch current user
+    const user = await User.findById(decoded.userId);
+    if (!user) {
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404 }
       );
     }
+
+    // Check if any of the fields have changed
+    const isSameData = 
+      user.name === name &&
+      user.collegeCourseName === collegeCourseName &&
+      user.university === university &&
+      user.responseFormat===responseFormat
+
+    if (isSameData) {
+      return new Response(
+        JSON.stringify({ message: 'No changes detected' }),
+        { status: 200 }
+      );
+    }
+
+    // If data has changed, proceed with the update
+    const updatedUser = await User.findByIdAndUpdate(
+      decoded.userId,
+      { name, collegeCourseName, university, responseFormat },
+      { new: true }
+    );
 
     return new Response(
       JSON.stringify({ 
@@ -84,7 +102,8 @@ export async function PUT(req) {
         user: {
           name: updatedUser.name,
           collegeCourseName: updatedUser.collegeCourseName,
-          university: updatedUser.university
+          university: updatedUser.university,
+          responseFormat:updatedUser.responseFormat
         }
       }),
       { status: 200 }

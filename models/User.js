@@ -19,9 +19,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  university:{
-    type:String,
-    required:true
+  university: {
+    type: String,
+    required: true,
+  },
+  responseFormat: {
+    type: String,
+    default: ""
   }
 }, { timestamps: true });
 

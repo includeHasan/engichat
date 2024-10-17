@@ -7,7 +7,7 @@ export async function POST(req) {
   await dbConnect();
 
   try {
-    const { token, query, history } = await req.json();
+    const { token, query, history, responseFormat } = await req.json();
 
     // Verify the token
     const decoded = verifyToken(token);
@@ -31,8 +31,16 @@ export async function POST(req) {
     const genAI = new GoogleGenerativeAI(process.env.API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
-    // Create system prompt with context
-    const systemPrompt = `You are an assistant helping ${user.name}, who is a student studying ${user.collegeCourseName}. Respond only to queries related to college education.`;
+    // Create a robust system prompt that includes response format
+    let systemPrompt = `You are a highly knowledgeable assistant helping ${user.name}, a student studying ${user.collegeCourseName}. You specialize in assisting with queries related to college education, projects, exams, and general academic advice. Provide clear and accurate information to help the user in their studies.`;
+
+    // Include the response format in the system prompt, if specified by the user
+    if (responseFormat) {
+      systemPrompt += `\nPlease format the response as follows: ${responseFormat}.`;
+    } else if(!responseFormat || responseFormat==='') {
+      systemPrompt += `\nIf no specific format is provided, return a well-structured and concise text response.`;
+    }
+    console.log(systemPrompt)
 
     // Prepare chat history in the correct format
     const formattedHistory = history ? history.map(item => ({
@@ -45,14 +53,14 @@ export async function POST(req) {
       history: formattedHistory,
     });
 
-    // Send the system prompt and user's query
-    const result = await chat.sendMessage([
-      { text: systemPrompt },
-      { text: query }
-    ]);
+    // Add system prompt to the chat
+    chat.sendMessage([{ text: systemPrompt }]);
+
+    // Send the query to the AI model
+    const result = await chat.sendMessage([{ text: query }]);
     const response = await result.response.text();
 
-    // Send the response back to the frontend
+    // Return the response to the frontend
     return new Response(
       JSON.stringify({ response }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
